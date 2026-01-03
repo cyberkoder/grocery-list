@@ -11,11 +11,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, quantity, unit, note, categoryId } = await req.json();
+    const { name, quantity, unit, note, categoryId, storeId } = await req.json();
 
-    if (!name || !categoryId) {
+    if (!name || !categoryId || !storeId) {
       return NextResponse.json(
-        { error: "Name and category are required" },
+        { error: "Name, category, and store are required" },
         { status: 400 }
       );
     }
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
         unit: unit || null,
         note: note || null,
         categoryId,
+        storeId,
         addedById: session.user.id,
       },
       include: {
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
           select: { name: true },
         },
         category: true,
+        store: true,
       },
     });
 
@@ -55,7 +57,7 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    const { id, checked, name, quantity, unit, note, categoryId } = await req.json();
+    const { id, checked, name, quantity, unit, note, categoryId, storeId } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: "Item ID required" }, { status: 400 });
@@ -68,6 +70,7 @@ export async function PATCH(req: Request) {
     if (unit !== undefined) updateData.unit = unit;
     if (note !== undefined) updateData.note = note;
     if (categoryId) updateData.categoryId = categoryId;
+    if (storeId) updateData.storeId = storeId;
 
     const item = await prisma.item.update({
       where: { id },
@@ -76,6 +79,8 @@ export async function PATCH(req: Request) {
         addedBy: {
           select: { name: true },
         },
+        category: true,
+        store: true,
       },
     });
 

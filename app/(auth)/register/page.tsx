@@ -43,7 +43,8 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong");
       } else {
-        router.push("/login?registered=true");
+        // Pass email to login page for convenience
+        router.push(`/login?registered=true&email=${encodeURIComponent(email)}`);
       }
     } catch {
       setError("Something went wrong");

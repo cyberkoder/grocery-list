@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const categories = await prisma.category.findMany({
+  const stores = await prisma.store.findMany({
     orderBy: { order: "asc" },
     include: {
       items: {
@@ -19,13 +19,13 @@ export async function GET() {
           addedBy: {
             select: { name: true },
           },
-          store: true,
+          category: true,
         },
       },
     },
   });
 
-  return NextResponse.json(categories);
+  return NextResponse.json(stores);
 }
 
 export async function POST(req: Request) {
@@ -43,24 +43,24 @@ export async function POST(req: Request) {
     }
 
     // Get max order
-    const maxOrder = await prisma.category.findFirst({
+    const maxOrder = await prisma.store.findFirst({
       orderBy: { order: "desc" },
       select: { order: true },
     });
 
-    const category = await prisma.category.create({
+    const store = await prisma.store.create({
       data: {
         name,
-        icon: icon || "box",
+        icon: icon || "store",
         order: (maxOrder?.order || 0) + 1,
       },
     });
 
-    return NextResponse.json(category);
+    return NextResponse.json(store);
   } catch (error) {
-    console.error("Error creating category:", error);
+    console.error("Error creating store:", error);
     return NextResponse.json(
-      { error: "Failed to create category" },
+      { error: "Failed to create store" },
       { status: 500 }
     );
   }

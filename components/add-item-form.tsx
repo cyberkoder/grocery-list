@@ -25,18 +25,25 @@ interface Category {
   name: string;
 }
 
+interface Store {
+  id: string;
+  name: string;
+}
+
 interface AddItemFormProps {
   categories: Category[];
+  stores: Store[];
   onAdd: (item: {
     name: string;
     quantity: number;
     unit: string;
     note: string;
     categoryId: string;
+    storeId: string;
   }) => Promise<void>;
 }
 
-export function AddItemForm({ categories, onAdd }: AddItemFormProps) {
+export function AddItemForm({ categories, stores, onAdd }: AddItemFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
@@ -44,10 +51,11 @@ export function AddItemForm({ categories, onAdd }: AddItemFormProps) {
   const [unit, setUnit] = useState("");
   const [note, setNote] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [storeId, setStoreId] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !categoryId) return;
+    if (!name.trim() || !categoryId || !storeId) return;
 
     setLoading(true);
     try {
@@ -57,6 +65,7 @@ export function AddItemForm({ categories, onAdd }: AddItemFormProps) {
         unit: unit.trim(),
         note: note.trim(),
         categoryId,
+        storeId,
       });
       setName("");
       setQuantity("1");
@@ -113,6 +122,21 @@ export function AddItemForm({ categories, onAdd }: AddItemFormProps) {
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="store">Store *</Label>
+            <Select value={storeId} onValueChange={setStoreId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a store" />
+              </SelectTrigger>
+              <SelectContent>
+                {stores.map((store) => (
+                  <SelectItem key={store.id} value={store.id}>
+                    {store.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
             <Select value={categoryId} onValueChange={setCategoryId} required>
               <SelectTrigger>
@@ -136,7 +160,7 @@ export function AddItemForm({ categories, onAdd }: AddItemFormProps) {
               placeholder="Any special notes..."
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading || !name.trim() || !categoryId}>
+          <Button type="submit" className="w-full" disabled={loading || !name.trim() || !categoryId || !storeId}>
             {loading ? "Adding..." : "Add Item"}
           </Button>
         </form>

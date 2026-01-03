@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart } from "lucide-react";
+import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategorySection } from "./category-section";
 import { AddItemForm } from "./add-item-form";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Item {
   id: string;
@@ -16,9 +17,16 @@ interface Item {
   note: string | null;
   checked: boolean;
   addedBy: { name: string };
+  category: { id: string; name: string };
+  store: { id: string; name: string };
 }
 
 interface Category {
+  id: string;
+  name: string;
+}
+
+interface Store {
   id: string;
   name: string;
   items: Item[];
@@ -27,23 +35,73 @@ interface Category {
 export function GroceryList() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [stores, setStores] = useState<Store[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
 
-  const fetchCategories = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories");
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
+      const [storesRes, categoriesRes] = await Promise.all([
+        fetch("/api/stores"),
+        fetch("/api/categories"),
+      ]);
+
+      if (storesRes.ok) {
+        const storesData = await storesRes.json();
+        setStores(storesData);
+        // Auto-expand stores that have items
+        const storesWithItems = storesData
+          .filter((s: Store) => s.items.length > 0)
+          .map((s: Store) => s.id);
+        setExpandedStores(new Set(storesWithItems));
+      }
+
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json();
+        setCategories(categoriesData);
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
+      console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  }, []);
+
+  const requestNotificationPermission = useCallback(async () => {
+    if (!("Notification" in window)) {
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      setNotificationsEnabled(true);
+      return;
+    }
+
+    if (Notification.permission !== "denied") {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === "granted");
+
+      if (permission === "granted") {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+          });
+
+          await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(subscription),
+          });
+        } catch (error) {
+          console.error("Failed to subscribe to push:", error);
+        }
+      }
     }
   }, []);
 
@@ -51,13 +109,11 @@ export function GroceryList() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else if (status === "authenticated") {
-      fetchCategories();
-      // Check notification permission
-      if ("Notification" in window) {
-        setNotificationsEnabled(Notification.permission === "granted");
-      }
+      fetchData();
+      // Auto-request notification permission
+      requestNotificationPermission();
     }
-  }, [status, router, fetchCategories]);
+  }, [status, router, fetchData, requestNotificationPermission]);
 
   async function handleAddItem(item: {
     name: string;
@@ -65,6 +121,7 @@ export function GroceryList() {
     unit: string;
     note: string;
     categoryId: string;
+    storeId: string;
   }) {
     const res = await fetch("/api/items", {
       method: "POST",
@@ -73,16 +130,16 @@ export function GroceryList() {
     });
 
     if (res.ok) {
-      fetchCategories();
+      fetchData();
     }
   }
 
   async function handleToggleItem(id: string, checked: boolean) {
     // Optimistic update
-    setCategories((prev) =>
-      prev.map((cat) => ({
-        ...cat,
-        items: cat.items.map((item) =>
+    setStores((prev) =>
+      prev.map((store) => ({
+        ...store,
+        items: store.items.map((item) =>
           item.id === id ? { ...item, checked } : item
         ),
       }))
@@ -93,14 +150,17 @@ export function GroceryList() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, checked }),
     });
+
+    // Refetch to update counts
+    fetchData();
   }
 
   async function handleDeleteItem(id: string) {
     // Optimistic update
-    setCategories((prev) =>
-      prev.map((cat) => ({
-        ...cat,
-        items: cat.items.filter((item) => item.id !== id),
+    setStores((prev) =>
+      prev.map((store) => ({
+        ...store,
+        items: store.items.filter((item) => item.id !== id),
       }))
     );
 
@@ -112,10 +172,10 @@ export function GroceryList() {
   async function handleClearChecked() {
     if (!confirm("Clear all checked items?")) return;
 
-    setCategories((prev) =>
-      prev.map((cat) => ({
-        ...cat,
-        items: cat.items.filter((item) => !item.checked),
+    setStores((prev) =>
+      prev.map((store) => ({
+        ...store,
+        items: store.items.filter((item) => !item.checked),
       }))
     );
 
@@ -124,40 +184,36 @@ export function GroceryList() {
     });
   }
 
-  async function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-      alert("This browser does not support notifications");
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    setNotificationsEnabled(permission === "granted");
-
-    if (permission === "granted") {
-      // Subscribe to push notifications
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-        });
-
-        await fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(subscription),
-        });
-      } catch (error) {
-        console.error("Failed to subscribe to push:", error);
+  function toggleStoreExpanded(storeId: string) {
+    setExpandedStores((prev) => {
+      const next = new Set(prev);
+      if (next.has(storeId)) {
+        next.delete(storeId);
+      } else {
+        next.add(storeId);
       }
-    }
+      return next;
+    });
   }
 
-  const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0);
-  const checkedItems = categories.reduce(
-    (sum, cat) => sum + cat.items.filter((item) => item.checked).length,
+  const totalItems = stores.reduce((sum, store) => sum + store.items.length, 0);
+  const checkedItems = stores.reduce(
+    (sum, store) => sum + store.items.filter((item) => item.checked).length,
     0
   );
+
+  // Group items by category within each store
+  function getItemsByCategory(items: Item[]) {
+    const grouped: Record<string, Item[]> = {};
+    for (const item of items) {
+      const catName = item.category.name;
+      if (!grouped[catName]) {
+        grouped[catName] = [];
+      }
+      grouped[catName].push(item);
+    }
+    return grouped;
+  }
 
   if (status === "loading" || loading) {
     return (
@@ -166,6 +222,8 @@ export function GroceryList() {
       </div>
     );
   }
+
+  const storesWithItems = stores.filter((store) => store.items.length > 0);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -182,7 +240,7 @@ export function GroceryList() {
               size="icon"
               onClick={() => {
                 setRefreshing(true);
-                fetchCategories();
+                fetchData();
               }}
               disabled={refreshing}
             >
@@ -233,17 +291,49 @@ export function GroceryList() {
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Stores with Items */}
       <main className="container px-4 py-4 space-y-4">
-        {categories.map((category) => (
-          <CategorySection
-            key={category.id}
-            name={category.name}
-            items={category.items}
-            onToggle={handleToggleItem}
-            onDelete={handleDeleteItem}
-          />
-        ))}
+        {storesWithItems.map((store) => {
+          const itemsByCategory = getItemsByCategory(store.items);
+          const uncheckedCount = store.items.filter((i) => !i.checked).length;
+          const isExpanded = expandedStores.has(store.id);
+
+          return (
+            <Collapsible
+              key={store.id}
+              open={isExpanded}
+              onOpenChange={() => toggleStoreExpanded(store.id)}
+            >
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg cursor-pointer hover:bg-primary/15 transition-colors">
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-primary" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                    )}
+                    <StoreIcon className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">{store.name}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {uncheckedCount} item{uncheckedCount !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-2 pl-4">
+                {Object.entries(itemsByCategory).map(([categoryName, items]) => (
+                  <CategorySection
+                    key={categoryName}
+                    name={categoryName}
+                    items={items}
+                    onToggle={handleToggleItem}
+                    onDelete={handleDeleteItem}
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
 
         {totalItems === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -259,6 +349,7 @@ export function GroceryList() {
       {/* Add Item FAB */}
       <AddItemForm
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        stores={stores.map((s) => ({ id: s.id, name: s.name }))}
         onAdd={handleAddItem}
       />
     </div>

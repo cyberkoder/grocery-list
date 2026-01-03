@@ -14,9 +14,19 @@ model User {
   password         String
   pushSubscription String?  @db.Text
   notifyAt9am      Boolean  @default(true)
+  notifyOnChanges  Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   items            Item[]
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?
+  order     Int
+  createdAt DateTime @default(now())
+  items     Item[]
 }
 
 model Category {
@@ -35,6 +45,8 @@ model Item {
   unit       String?
   note       String?
   checked    Boolean  @default(false)
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   addedById  String
@@ -42,6 +54,7 @@ model Item {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@index([storeId])
   @@index([categoryId])
   @@index([addedById])
   @@index([checked])

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,22 @@ import { ShoppingCart } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const registered = searchParams.get("registered");
+
+  useEffect(() => {
+    // Check for email from URL (after registration) or localStorage
+    const urlEmail = searchParams.get("email");
+    const savedEmail = localStorage.getItem("grocery_email");
+    if (urlEmail) {
+      setEmail(urlEmail);
+    } else if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,12 +35,15 @@ export default function LoginPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
+    const emailValue = formData.get("email") as string;
     const password = formData.get("password") as string;
+
+    // Remember email for next time
+    localStorage.setItem("grocery_email", emailValue);
 
     try {
       const result = await signIn("credentials", {
-        email,
+        email: emailValue,
         password,
         redirect: false,
       });
@@ -56,6 +73,11 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {registered && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-600">
+                Account created! Please sign in.
+              </div>
+            )}
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
                 {error}
@@ -70,6 +92,8 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
