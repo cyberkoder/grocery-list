@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart,
   Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
-  IceCream, Cookie, Coffee, Wine, Sparkles, Package
+  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,35 @@ export function GroceryList() {
   const [addingQuick, setAddingQuick] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Load expanded categories from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("expandedCategories");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setExpandedCategories(new Set(parsed));
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
+    }
+  }, []);
+
+  // Toggle category expansion
+  function toggleCategory(categoryName: string) {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryName)) {
+        next.delete(categoryName);
+      } else {
+        next.add(categoryName);
+      }
+      // Save to localStorage
+      localStorage.setItem("expandedCategories", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -463,32 +492,48 @@ export function GroceryList() {
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
           {Object.entries(itemsByCategory).length > 0 ? (
-            Object.entries(itemsByCategory).map(([categoryName, items]) => (
-              <div key={categoryName}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    {categoryIcons[categoryName] || categoryIcons.default}
-                  </div>
-                  <h2 className="font-semibold text-foreground">{categoryName}</h2>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {items.filter(i => !i.checked).length}
-                  </span>
+            Object.entries(itemsByCategory).map(([categoryName, items]) => {
+              const isExpanded = expandedCategories.has(categoryName);
+              const uncheckedCount = items.filter(i => !i.checked).length;
+              return (
+                <div key={categoryName}>
+                  <button
+                    onClick={() => toggleCategory(categoryName)}
+                    className="w-full flex items-center gap-2 mb-3 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      {categoryIcons[categoryName] || categoryIcons.default}
+                    </div>
+                    <h2 className="font-semibold text-foreground">{categoryName}</h2>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      {uncheckedCount}
+                    </span>
+                    <div className="ml-auto text-muted-foreground">
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-2">
+                      {items.map((item) => (
+                        <ItemCard
+                          key={item.id}
+                          item={item}
+                          categories={categories}
+                          stores={stores}
+                          onToggle={handleToggleItem}
+                          onDelete={handleDeleteItem}
+                          onEdit={handleEditItem}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      categories={categories}
-                      stores={stores}
-                      onToggle={handleToggleItem}
-                      onDelete={handleDeleteItem}
-                      onEdit={handleEditItem}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
