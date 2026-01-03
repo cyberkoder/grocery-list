@@ -79,7 +79,6 @@ export function GroceryList() {
 
     if (Notification.permission === "granted") {
       setNotificationsEnabled(true);
-      alert("Notifications are already enabled!");
       return;
     }
 
