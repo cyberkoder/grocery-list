@@ -192,6 +192,13 @@ export function GroceryList() {
     } else if (status === "authenticated") {
       fetchData();
       requestNotificationPermission();
+
+      // Auto-refresh every 10 seconds for real-time updates
+      const refreshInterval = setInterval(() => {
+        fetchData();
+      }, 10000);
+
+      return () => clearInterval(refreshInterval);
     }
   }, [status, router, fetchData, requestNotificationPermission]);
 
@@ -335,7 +342,7 @@ export function GroceryList() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-primary text-primary-foreground">
+      <header className="sticky top-0 z-20 bg-primary text-primary-foreground safe-area-header">
         <div className="flex h-16 items-center justify-between px-4 max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -549,7 +556,7 @@ export function GroceryList() {
       </main>
 
       {/* Bottom Search Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-20 safe-area-bottom">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <AddItemDrawer
             categories={categories}

@@ -58,4 +58,23 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Safe area support for notched devices */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+}
+
+/* Extend header into safe area */
+.safe-area-header {
+  padding-top: env(safe-area-inset-top, 0px);
+  background-color: inherit;
+}
+
+/* Bottom safe area for fixed elements */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
