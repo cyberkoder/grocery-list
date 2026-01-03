@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ItemCard } from "./item-card";
 import { AddItemDrawer } from "./add-item-drawer";
+import { UserAvatar } from "./user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -345,13 +346,17 @@ export function GroceryList() {
       <header className="sticky top-0 z-20 bg-primary text-primary-foreground safe-area-header">
         <div className="flex h-16 items-center justify-between px-4 max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-              <ShoppingCart className="h-5 w-5" />
-            </div>
+            {session?.user?.name ? (
+              <UserAvatar name={session.user.name} size="lg" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+            )}
             <div>
               <h1 className="font-semibold text-lg">Grocery List</h1>
               <p className="text-xs text-primary-foreground/70">
-                {session?.user?.name ? `Hi, ${session.user.name}` : "Welcome"}
+                {session?.user?.name ? `Hi, ${session.user.name.split(' ')[0]}` : "Welcome"}
               </p>
             </div>
           </div>

@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "./user-avatar";
 
 interface Category {
   id: string;
