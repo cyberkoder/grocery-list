@@ -4,11 +4,22 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Common product types that should come first with flavor in parentheses
+// Multi-word types should come first (longer matches first)
 const PRODUCT_TYPES = [
-  "chips", "crackers", "cookies", "cereal", "yogurt", "ice cream",
-  "bread", "bagels", "muffins", "donuts", "pizza", "soup", "sauce",
-  "juice", "soda", "water", "milk", "cheese", "butter"
+  // Multi-word (check these first)
+  "toilet paper", "paper towels", "ice cream", "cream cheese", "sour cream",
+  "orange juice", "apple juice", "greek yogurt", "coffee creamer", "lunch meat",
+  "hot dogs", "ground beef", "chicken breast", "peanut butter", "jelly",
+  // Single-word
+  "chips", "crackers", "cookies", "cereal", "yogurt", "bread", "bagels",
+  "muffins", "donuts", "pizza", "soup", "sauce", "juice", "soda", "water",
+  "milk", "cheese", "butter", "eggs", "bacon", "sausage", "ham", "turkey"
 ];
+
+// Title case a string (handles multi-word)
+function toTitleCase(str: string): string {
+  return str.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
 
 // Normalize item name: format nicely
 function normalizeName(name: string): string {
@@ -27,8 +38,10 @@ function normalizeName(name: string): string {
   // Check if name ends with a product type (e.g., "Cheddar & Sour Cream Chips")
   // and reformat to "Chips (Cheddar & Sour Cream)"
   for (const productType of PRODUCT_TYPES) {
-    const titleType = productType.charAt(0).toUpperCase() + productType.slice(1);
-    const regex = new RegExp(`^(.+)\\s+${titleType}$`, "i");
+    const titleType = toTitleCase(productType);
+    // Escape special regex chars and handle multi-word types
+    const escapedType = titleType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`^(.+)\\s+${escapedType}$`, "i");
     const match = normalized.match(regex);
     if (match && match[1]) {
       const flavor = match[1].trim();
