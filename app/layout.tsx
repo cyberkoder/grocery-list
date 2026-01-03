@@ -11,13 +11,16 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Grocery List",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#188653" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1f14" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
