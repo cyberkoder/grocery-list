@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
-import { Search } from "lucide-react";
+import { Search, ScanBarcode } from "lucide-react";
 import { VoiceInput } from "./voice-input";
+import { BarcodeScanner } from "./barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +68,7 @@ export function AddItemDrawer({ categories, stores, defaultStoreId, onAdd, trigg
   const [note, setNote] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [storeId, setStoreId] = useState(defaultStoreId || "");
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // Autocomplete state
   const [autocompleteResults, setAutocompleteResults] = useState<ItemSuggestion[]>([]);
@@ -124,6 +126,12 @@ export function AddItemDrawer({ categories, stores, defaultStoreId, onAdd, trigg
     }
     setShowAutocomplete(false);
     setAutocompleteResults([]);
+  }
+
+  function handleBarcodeScan(product: { name: string; barcode: string }) {
+    setName(product.name);
+    // Try to find the product in our database
+    searchAutocomplete(product.name);
   }
 
   useEffect(() => {
@@ -195,6 +203,16 @@ export function AddItemDrawer({ categories, stores, defaultStoreId, onAdd, trigg
                   autoComplete="off"
                   className="flex-1 h-12 text-lg"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => setScannerOpen(true)}
+                  disabled={loading}
+                >
+                  <ScanBarcode className="h-5 w-5" />
+                </Button>
                 <VoiceInput
                   onResult={(text) => handleNameChange(text)}
                   disabled={loading}
@@ -300,6 +318,12 @@ export function AddItemDrawer({ categories, stores, defaultStoreId, onAdd, trigg
           </form>
         </div>
       </DrawerContent>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
     </Drawer>
   );
 }
