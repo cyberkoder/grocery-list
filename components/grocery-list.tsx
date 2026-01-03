@@ -402,33 +402,41 @@ export function GroceryList() {
           </div>
         </div>
 
-        {/* Store Tabs */}
+        {/* Store Tabs - sorted by unchecked item count */}
         <div className="overflow-x-auto scrollbar-hide">
           <div className="flex gap-2 px-4 pb-3 min-w-max">
-            {stores.map((store) => {
-              const storeUnchecked = store.items.filter(i => !i.checked).length;
-              const isSelected = store.id === selectedStoreId;
-              return (
-                <button
-                  key={store.id}
-                  onClick={() => setSelectedStoreId(store.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                    isSelected
-                      ? "bg-white text-primary shadow-md"
-                      : "bg-white/20 text-primary-foreground hover:bg-white/30"
-                  }`}
-                >
-                  {store.name}
-                  {storeUnchecked > 0 && (
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                      isSelected ? "bg-primary/10 text-primary" : "bg-white/20"
-                    }`}>
-                      {storeUnchecked}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {[...stores]
+              .sort((a, b) => {
+                const aUnchecked = a.items.filter(i => !i.checked).length;
+                const bUnchecked = b.items.filter(i => !i.checked).length;
+                return bUnchecked - aUnchecked; // Most items first
+              })
+              .map((store) => {
+                const storeUnchecked = store.items.filter(i => !i.checked).length;
+                const isSelected = store.id === selectedStoreId;
+                return (
+                  <button
+                    key={store.id}
+                    onClick={() => setSelectedStoreId(store.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                      isSelected
+                        ? "bg-white text-primary shadow-md"
+                        : storeUnchecked > 0
+                          ? "bg-white/20 text-primary-foreground hover:bg-white/30"
+                          : "bg-white/10 text-primary-foreground/60 hover:bg-white/20"
+                    }`}
+                  >
+                    {store.name}
+                    {storeUnchecked > 0 && (
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                        isSelected ? "bg-primary/10 text-primary" : "bg-white/20"
+                      }`}>
+                        {storeUnchecked}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
           </div>
         </div>
       </header>
