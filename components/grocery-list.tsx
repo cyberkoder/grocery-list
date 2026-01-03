@@ -384,7 +384,7 @@ export function GroceryList() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-primary text-primary-foreground safe-area-header">
-        <div className="flex h-16 items-center justify-between px-4 max-w-2xl mx-auto">
+        <div className="flex h-16 items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             {session?.user?.name ? (
               <UserAvatar name={session.user.name} size="lg" />
@@ -452,8 +452,8 @@ export function GroceryList() {
         </div>
 
         {/* Store Tabs - sorted by unchecked item count */}
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 px-4 pb-3 min-w-max">
+        <div className="overflow-x-auto scrollbar-hide max-w-7xl mx-auto">
+          <div className="flex gap-2 px-4 lg:px-8 pb-3 min-w-max">
             {[...stores]
               .sort((a, b) => {
                 const aUnchecked = a.items.filter(i => !i.checked).length;
@@ -491,8 +491,8 @@ export function GroceryList() {
       </header>
 
       {/* Stats Bar */}
-      <div className="bg-card border-b px-4 py-3">
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+      <div className="bg-card border-b px-4 lg:px-8 py-3">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -531,8 +531,8 @@ export function GroceryList() {
 
       {/* Quick Add Row */}
       {frequentItems.length > 0 && (
-        <div className="bg-card border-b px-4 py-3">
-          <div className="max-w-2xl mx-auto">
+        <div className="bg-card border-b px-4 lg:px-8 py-3">
+          <div className="max-w-7xl mx-auto">
             <p className="text-xs text-muted-foreground mb-2 font-medium">Quick Add</p>
             <div className="flex flex-wrap gap-2">
               {frequentItems.slice(0, 6).map((item) => (
@@ -554,7 +554,7 @@ export function GroceryList() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-24">
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 space-y-6">
           {Object.entries(itemsByCategory).length > 0 ? (
             Object.entries(itemsByCategory).map(([categoryName, items]) => {
               const isExpanded = expandedCategories.has(categoryName);
@@ -614,7 +614,7 @@ export function GroceryList() {
 
       {/* Bottom Search Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-20 safe-area-bottom">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3">
           <AddItemDrawer
             categories={categories}
             stores={stores}
