@@ -162,7 +162,7 @@ export async function PATCH(req: Request) {
 
     const updateData: Record<string, unknown> = {};
     if (typeof checked === "boolean") updateData.checked = checked;
-    if (name) updateData.name = name;
+    if (name) updateData.name = normalizeName(name);
     if (quantity) updateData.quantity = quantity;
     if (unit !== undefined) updateData.unit = unit;
     if (note !== undefined) updateData.note = note;
