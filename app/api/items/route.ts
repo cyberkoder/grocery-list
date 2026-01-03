@@ -3,14 +3,44 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// Normalize item name: trim, title case
+// Common product types that should come first with flavor in parentheses
+const PRODUCT_TYPES = [
+  "chips", "crackers", "cookies", "cereal", "yogurt", "ice cream",
+  "bread", "bagels", "muffins", "donuts", "pizza", "soup", "sauce",
+  "juice", "soda", "water", "milk", "cheese", "butter"
+];
+
+// Normalize item name: format nicely
 function normalizeName(name: string): string {
-  return name
+  let normalized = name
     .trim()
     .toLowerCase()
+    // Replace "and" with "&"
+    .replace(/\s+and\s+/gi, " & ");
+
+  // Title case each word
+  normalized = normalized
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+
+  // Check if name ends with a product type (e.g., "Cheddar & Sour Cream Chips")
+  // and reformat to "Chips (Cheddar & Sour Cream)"
+  for (const productType of PRODUCT_TYPES) {
+    const titleType = productType.charAt(0).toUpperCase() + productType.slice(1);
+    const regex = new RegExp(`^(.+)\\s+${titleType}$`, "i");
+    const match = normalized.match(regex);
+    if (match && match[1]) {
+      const flavor = match[1].trim();
+      // Don't reformat if flavor is just a size/quantity word
+      if (!["Large", "Small", "Mini", "Family", "Single"].includes(flavor)) {
+        normalized = `${titleType} (${flavor})`;
+        break;
+      }
+    }
+  }
+
+  return normalized;
 }
 
 // Category names to exclude from history
@@ -42,9 +72,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Format the name nicely
+    const formattedName = normalizeName(name);
+
     const item = await prisma.item.create({
       data: {
-        name,
+        name: formattedName,
         quantity: quantity || 1,
         unit: unit || null,
         note: note || null,
@@ -62,11 +95,10 @@ export async function POST(req: Request) {
     });
 
     // Track in ItemHistory for suggestions (if valid name)
-    if (isValidForHistory(name)) {
-      const normalizedName = normalizeName(name);
+    if (isValidForHistory(formattedName)) {
       try {
         await prisma.itemHistory.upsert({
-          where: { name: normalizedName },
+          where: { name: formattedName },
           update: {
             addCount: { increment: 1 },
             lastAddedAt: new Date(),
@@ -76,7 +108,7 @@ export async function POST(req: Request) {
             defaultUnit: unit || undefined,
           },
           create: {
-            name: normalizedName,
+            name: formattedName,
             categoryId,
             storeId,
             defaultQuantity: quantity || 1,
