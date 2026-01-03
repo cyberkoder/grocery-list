@@ -72,9 +72,9 @@ export function GroceryList() {
     }
   }, []);
 
-  const requestNotificationPermission = useCallback(async () => {
+  const requestNotificationPermission = useCallback(async (manual = false) => {
     if (!("Notification" in window)) {
-      alert("Notifications are not supported in this browser.");
+      if (manual) alert("Notifications are not supported in this browser.");
       return;
     }
 
@@ -84,7 +84,7 @@ export function GroceryList() {
     }
 
     if (Notification.permission === "denied") {
-      alert("Notifications were previously blocked. Please enable them in your browser settings.");
+      if (manual) alert("Notifications were previously blocked. Please enable them in your browser settings.");
       return;
     }
 
@@ -104,12 +104,12 @@ export function GroceryList() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(subscription),
         });
-        alert("Notifications enabled! You'll receive reminders at 9am.");
+        if (manual) alert("Notifications enabled! You'll receive reminders at 9am.");
       } catch (error) {
         console.error("Failed to subscribe to push:", error);
-        alert("Failed to enable notifications. Please try again.");
+        if (manual) alert("Failed to enable notifications. Please try again.");
       }
-    } else {
+    } else if (manual) {
       alert("Notifications were not enabled.");
     }
   }, []);
@@ -280,7 +280,7 @@ export function GroceryList() {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={requestNotificationPermission}
+              onClick={() => requestNotificationPermission(true)}
               title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
             >
               {notificationsEnabled ? (
