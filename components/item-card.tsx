@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Trash2, Pencil, Check, X } from "lucide-react";
+import {
+  Trash2, Pencil, Check, X, Apple, Milk, Beef, IceCream,
+  Cookie, Coffee, Package, Sparkles, ShoppingCart
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +63,31 @@ interface ItemCardProps {
 }
 
 const SWIPE_THRESHOLD = 80;
+
+// Category icon mapping
+function getCategoryIcon(categoryName?: string) {
+  const iconClass = "h-5 w-5";
+  switch (categoryName) {
+    case "Produce":
+      return <Apple className={iconClass} />;
+    case "Dairy":
+      return <Milk className={iconClass} />;
+    case "Meat & Seafood":
+      return <Beef className={iconClass} />;
+    case "Frozen":
+      return <IceCream className={iconClass} />;
+    case "Snacks":
+      return <Cookie className={iconClass} />;
+    case "Beverages":
+      return <Coffee className={iconClass} />;
+    case "Pantry":
+      return <Package className={iconClass} />;
+    case "Household":
+      return <Sparkles className={iconClass} />;
+    default:
+      return <ShoppingCart className={iconClass} />;
+  }
+}
 
 export function ItemCard({ item, categories = [], stores = [], onToggle, onDelete, onEdit }: ItemCardProps) {
   const [editOpen, setEditOpen] = useState(false);
@@ -189,7 +217,7 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
         {/* Card content */}
         <div
           className={cn(
-            "flex items-center gap-2 sm:gap-3 rounded-lg border p-2 sm:p-3 transition-colors relative bg-card",
+            "flex items-center gap-2 sm:gap-3 rounded-xl border p-2 sm:p-3 transition-colors relative bg-card shadow-sm",
             item.checked ? "bg-muted/50 opacity-60" : "bg-card",
             !isSwiping && "transition-transform duration-200"
           )}
@@ -198,6 +226,14 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
+          {/* Category Icon */}
+          <div className={cn(
+            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+            item.checked ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+          )}>
+            {getCategoryIcon(item.category?.name)}
+          </div>
+
           <Checkbox
             checked={item.checked}
             onCheckedChange={(checked) => onToggle(item.id, checked as boolean)}
