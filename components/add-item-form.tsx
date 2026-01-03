@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { VoiceInput } from "./voice-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -223,16 +224,23 @@ export function AddItemForm({ categories, stores, onAdd }: AddItemFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2 relative">
             <Label htmlFor="name">Item Name *</Label>
-            <Input
-              ref={inputRef}
-              id="name"
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="e.g., Milk, Bread, Eggs"
-              required
-              autoFocus
-              autoComplete="off"
-            />
+            <div className="flex gap-2">
+              <Input
+                ref={inputRef}
+                id="name"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="e.g., Milk, Bread, Eggs"
+                required
+                autoFocus
+                autoComplete="off"
+                className="flex-1"
+              />
+              <VoiceInput
+                onResult={(text) => handleNameChange(text)}
+                disabled={loading}
+              />
+            </div>
             {/* Autocomplete dropdown */}
             {showAutocomplete && autocompleteResults.length > 0 && (
               <div
@@ -464,15 +472,22 @@ export function AddItemSidebar({ categories, stores, onAdd }: AddItemFormProps) 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2 relative">
           <Label htmlFor="sidebar-name">Item Name *</Label>
-          <Input
-            ref={inputRef}
-            id="sidebar-name"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="e.g., Milk, Bread, Eggs"
-            required
-            autoComplete="off"
-          />
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              id="sidebar-name"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g., Milk, Bread, Eggs"
+              required
+              autoComplete="off"
+              className="flex-1"
+            />
+            <VoiceInput
+              onResult={(text) => handleNameChange(text)}
+              disabled={loading}
+            />
+          </div>
           {showAutocomplete && autocompleteResults.length > 0 && (
             <div
               ref={autocompleteRef}

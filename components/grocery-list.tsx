@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon } from "lucide-react";
+import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
 import { CategorySection } from "./category-section";
 import { AddItemForm, AddItemSidebar } from "./add-item-form";
@@ -274,6 +275,7 @@ export function GroceryList() {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
