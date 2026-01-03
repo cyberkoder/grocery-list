@@ -3,12 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon, Plus, TrendingUp } from "lucide-react";
+import {
+  LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart,
+  Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
+  IceCream, Cookie, Coffee, Wine, Sparkles, Package
+} from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
-import { CategorySection } from "./category-section";
-import { AddItemForm, AddItemSidebar } from "./add-item-form";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { ItemCard } from "./item-card";
+import { AddItemDrawer } from "./add-item-drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Item {
   id: string;
@@ -42,6 +53,19 @@ interface ItemSuggestion {
   defaultUnit: string | null;
 }
 
+// Category icons mapping
+const categoryIcons: Record<string, React.ReactNode> = {
+  "Produce": <Apple className="h-4 w-4" />,
+  "Dairy": <Milk className="h-4 w-4" />,
+  "Meat & Seafood": <Beef className="h-4 w-4" />,
+  "Frozen": <IceCream className="h-4 w-4" />,
+  "Snacks": <Cookie className="h-4 w-4" />,
+  "Beverages": <Coffee className="h-4 w-4" />,
+  "Pantry": <Package className="h-4 w-4" />,
+  "Household": <Sparkles className="h-4 w-4" />,
+  "default": <ShoppingCart className="h-4 w-4" />,
+};
+
 export function GroceryList() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -50,9 +74,11 @@ export function GroceryList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [frequentItems, setFrequentItems] = useState<ItemSuggestion[]>([]);
   const [addingQuick, setAddingQuick] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -65,11 +91,11 @@ export function GroceryList() {
       if (storesRes.ok) {
         const storesData = await storesRes.json();
         setStores(storesData);
-        // Auto-expand stores that have items
-        const storesWithItems = storesData
-          .filter((s: Store) => s.items.length > 0)
-          .map((s: Store) => s.id);
-        setExpandedStores(new Set(storesWithItems));
+        // Auto-select first store with items, or first store
+        const storeWithItems = storesData.find((s: Store) => s.items.length > 0);
+        if (!selectedStoreId) {
+          setSelectedStoreId(storeWithItems?.id || storesData[0]?.id || null);
+        }
       }
 
       if (categoriesRes.ok) {
@@ -87,7 +113,7 @@ export function GroceryList() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedStoreId]);
 
   const requestNotificationPermission = useCallback(async (manual = false) => {
     if (!("Notification" in window)) {
@@ -136,7 +162,6 @@ export function GroceryList() {
       router.push("/login");
     } else if (status === "authenticated") {
       fetchData();
-      // Auto-request notification permission
       requestNotificationPermission();
     }
   }, [status, router, fetchData, requestNotificationPermission]);
@@ -198,7 +223,6 @@ export function GroceryList() {
   }
 
   async function handleToggleItem(id: string, checked: boolean) {
-    // Optimistic update
     setStores((prev) =>
       prev.map((store) => ({
         ...store,
@@ -214,12 +238,10 @@ export function GroceryList() {
       body: JSON.stringify({ id, checked }),
     });
 
-    // Refetch to update counts
     fetchData();
   }
 
   async function handleDeleteItem(id: string) {
-    // Optimistic update
     setStores((prev) =>
       prev.map((store) => ({
         ...store,
@@ -247,25 +269,7 @@ export function GroceryList() {
     });
   }
 
-  function toggleStoreExpanded(storeId: string) {
-    setExpandedStores((prev) => {
-      const next = new Set(prev);
-      if (next.has(storeId)) {
-        next.delete(storeId);
-      } else {
-        next.add(storeId);
-      }
-      return next;
-    });
-  }
-
-  const totalItems = stores.reduce((sum, store) => sum + store.items.length, 0);
-  const checkedItems = stores.reduce(
-    (sum, store) => sum + store.items.filter((item) => item.checked).length,
-    0
-  );
-
-  // Group items by category within each store
+  // Get items by category for selected store
   function getItemsByCategory(items: Item[]) {
     const grouped: Record<string, Item[]> = {};
     for (const item of items) {
@@ -278,30 +282,48 @@ export function GroceryList() {
     return grouped;
   }
 
+  const selectedStore = stores.find(s => s.id === selectedStoreId);
+  const storeItems = selectedStore?.items || [];
+  const itemsByCategory = getItemsByCategory(storeItems);
+  const totalItems = stores.reduce((sum, store) => sum + store.items.length, 0);
+  const checkedItems = stores.reduce(
+    (sum, store) => sum + store.items.filter((item) => item.checked).length,
+    0
+  );
+  const uncheckedInStore = storeItems.filter(i => !i.checked).length;
+
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <ShoppingCart className="h-12 w-12 text-primary animate-pulse" />
+          <p className="text-muted-foreground">Loading your list...</p>
+        </div>
       </div>
     );
   }
 
-  const storesWithItems = stores.filter((store) => store.items.length > 0);
-
   return (
-    <div className="min-h-screen bg-background pb-24 lg:pb-6">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4 max-w-lg mx-auto lg:max-w-6xl">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            <h1 className="font-semibold">Grocery List</h1>
+      <header className="sticky top-0 z-20 bg-primary text-primary-foreground">
+        <div className="flex h-16 items-center justify-between px-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="font-semibold text-lg">Grocery List</h1>
+              <p className="text-xs text-primary-foreground/70">
+                {session?.user?.name ? `Hi, ${session.user.name}` : "Welcome"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className="h-9 w-9 text-primary-foreground hover:bg-white/20"
               onClick={() => {
                 setRefreshing(true);
                 fetchData();
@@ -310,73 +332,117 @@ export function GroceryList() {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => requestNotificationPermission(true)}
-              title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
-            >
-              {notificationsEnabled ? (
-                <Bell className="h-4 w-4 text-primary" />
-              ) : (
-                <BellOff className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => {
-                if (confirm("Are you sure you want to log out?")) {
-                  signOut();
-                }
-              }}
-              title="Log out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-primary-foreground hover:bg-white/20">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => requestNotificationPermission(true)}>
+                  {notificationsEnabled ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
+                  {notificationsEnabled ? "Notifications On" : "Enable Notifications"}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center">Theme</span>
+                    <ThemeToggle />
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to log out?")) {
+                      signOut();
+                    }
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Store Tabs */}
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 px-4 pb-3 min-w-max">
+            {stores.map((store) => {
+              const storeUnchecked = store.items.filter(i => !i.checked).length;
+              const isSelected = store.id === selectedStoreId;
+              return (
+                <button
+                  key={store.id}
+                  onClick={() => setSelectedStoreId(store.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                    isSelected
+                      ? "bg-white text-primary shadow-md"
+                      : "bg-white/20 text-primary-foreground hover:bg-white/30"
+                  }`}
+                >
+                  {store.name}
+                  {storeUnchecked > 0 && (
+                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                      isSelected ? "bg-primary/10 text-primary" : "bg-white/20"
+                    }`}>
+                      {storeUnchecked}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
 
-      {/* Stats bar */}
-      <div className="border-b bg-muted/30 px-4 py-2">
-        <div className="flex items-center justify-between text-sm max-w-lg mx-auto lg:max-w-6xl">
-          <span className="text-muted-foreground">
-            {session?.user?.name && `Hi, ${session.user.name}!`}
-          </span>
-          <div className="flex items-center gap-3">
-            <span>
-              <span className="font-medium text-primary">{totalItems - checkedItems}</span>
-              <span className="text-muted-foreground"> left</span>
-            </span>
+      {/* Stats Bar */}
+      <div className="bg-card border-b px-4 py-3">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <ShoppingCart className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-primary">{totalItems - checkedItems}</p>
+                <p className="text-xs text-muted-foreground">items left</p>
+              </div>
+            </div>
             {checkedItems > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                onClick={handleClearChecked}
-              >
-                <Trash2 className="mr-1 h-3 w-3" />
-                Clear {checkedItems}
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{checkedItems}</p>
+                  <p className="text-xs text-muted-foreground">completed</p>
+                </div>
+              </div>
             )}
           </div>
+          {checkedItems > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={handleClearChecked}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Quick Add - Frequent Items */}
+      {/* Quick Add Row */}
       {frequentItems.length > 0 && (
-        <div className="border-b bg-muted/20 px-4 py-3">
-          <div className="max-w-lg mx-auto lg:max-w-6xl">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-              <TrendingUp className="h-3 w-3" />
-              <span>Quick Add</span>
-            </div>
+        <div className="bg-card border-b px-4 py-3">
+          <div className="max-w-2xl mx-auto">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Quick Add</p>
             <div className="flex flex-wrap gap-2">
-              {frequentItems.slice(0, 8).map((item) => (
+              {frequentItems.slice(0, 6).map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -386,9 +452,6 @@ export function GroceryList() {
                 >
                   <Plus className="h-3 w-3" />
                   {item.name}
-                  {addingQuick === item.id && (
-                    <span className="animate-spin">...</span>
-                  )}
                 </button>
               ))}
             </div>
@@ -396,82 +459,67 @@ export function GroceryList() {
         </div>
       )}
 
-      {/* Main Content - Responsive Layout */}
-      <div className="px-4 py-4 max-w-lg mx-auto lg:max-w-6xl lg:flex lg:gap-6">
-        {/* Grocery List Column */}
-        <main className="space-y-3 lg:flex-1">
-          {storesWithItems.map((store) => {
-            const itemsByCategory = getItemsByCategory(store.items);
-            const uncheckedCount = store.items.filter((i) => !i.checked).length;
-            const isExpanded = expandedStores.has(store.id);
-
-            return (
-              <Collapsible
-                key={store.id}
-                open={isExpanded}
-                onOpenChange={() => toggleStoreExpanded(store.id)}
-              >
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg cursor-pointer hover:bg-primary/15 transition-colors active:bg-primary/20 touch-manipulation">
-                    <div className="flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-primary" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-primary" />
-                      )}
-                      <StoreIcon className="h-4 w-4 text-primary" />
-                      <span className="font-semibold">{store.name}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {uncheckedCount} item{uncheckedCount !== 1 ? "s" : ""}
-                    </span>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto pb-24">
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
+          {Object.entries(itemsByCategory).length > 0 ? (
+            Object.entries(itemsByCategory).map(([categoryName, items]) => (
+              <div key={categoryName}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    {categoryIcons[categoryName] || categoryIcons.default}
                   </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-3 pl-2">
-                  {Object.entries(itemsByCategory).map(([categoryName, items]) => (
-                    <CategorySection
-                      key={categoryName}
-                      name={categoryName}
-                      items={items}
-                      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-                      stores={stores.map((s) => ({ id: s.id, name: s.name }))}
+                  <h2 className="font-semibold text-foreground">{categoryName}</h2>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {items.filter(i => !i.checked).length}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      categories={categories}
+                      stores={stores}
                       onToggle={handleToggleItem}
                       onDelete={handleDeleteItem}
                       onEdit={handleEditItem}
                     />
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-
-          {totalItems === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h2 className="font-medium text-lg">Your list is empty</h2>
-              <p className="text-muted-foreground text-sm">
-                Tap the + button to add your first item
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <ShoppingCart className="h-10 w-10 text-primary/50" />
+              </div>
+              <h2 className="font-semibold text-lg text-foreground">No items yet</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Tap the search bar below to add items
               </p>
             </div>
           )}
-        </main>
+        </div>
+      </main>
 
-        {/* Desktop Sidebar - Always visible on lg screens */}
-        <aside className="hidden lg:block lg:w-80 lg:shrink-0 lg:sticky lg:top-20 lg:self-start">
-          <AddItemSidebar
-            categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-            stores={stores.map((s) => ({ id: s.id, name: s.name }))}
+      {/* Bottom Search Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-20">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <AddItemDrawer
+            categories={categories}
+            stores={stores}
+            defaultStoreId={selectedStoreId || undefined}
             onAdd={handleAddItem}
+            trigger={
+              <button className="w-full flex items-center gap-3 px-4 py-3 bg-muted rounded-xl text-left hover:bg-muted/80 transition-colors">
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <span className="text-muted-foreground">What do you need?</span>
+              </button>
+            }
           />
-        </aside>
+        </div>
       </div>
-
-      {/* Add Item FAB */}
-      <AddItemForm
-        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-        stores={stores.map((s) => ({ id: s.id, name: s.name }))}
-        onAdd={handleAddItem}
-      />
     </div>
   );
 }
