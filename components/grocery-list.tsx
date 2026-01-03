@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart,
   Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
-  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight
+  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight, Receipt
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { ItemCard } from "./item-card";
 import { AddItemDrawer } from "./add-item-drawer";
 import { UserAvatar } from "./user-avatar";
+import { ReceiptScanner } from "./receipt-scanner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +82,7 @@ export function GroceryList() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [receiptScannerOpen, setReceiptScannerOpen] = useState(false);
 
   // Load expanded categories from localStorage on mount
   useEffect(() => {
@@ -259,7 +261,45 @@ export function GroceryList() {
     }
   }
 
+  // Play a satisfying sound when checking off an item
+  function playCheckSound() {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Pleasant "ding" sound
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {
+      // Audio not supported, ignore
+    }
+  }
+
+  // Trigger haptic feedback
+  function triggerHaptic() {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50); // Short 50ms vibration
+    }
+  }
+
   async function handleToggleItem(id: string, checked: boolean) {
+    // Provide feedback when checking off an item (not when unchecking)
+    if (checked) {
+      playCheckSound();
+      triggerHaptic();
+    }
+
     setStores((prev) =>
       prev.map((store) => ({
         ...store,
@@ -380,6 +420,10 @@ export function GroceryList() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setReceiptScannerOpen(true)}>
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Scan Receipt
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => requestNotificationPermission(true)}>
                   {notificationsEnabled ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
                   {notificationsEnabled ? "Notifications On" : "Enable Notifications"}
@@ -585,6 +629,16 @@ export function GroceryList() {
           />
         </div>
       </div>
+
+      {/* Receipt Scanner */}
+      <ReceiptScanner
+        open={receiptScannerOpen}
+        onClose={() => setReceiptScannerOpen(false)}
+        onItemsFound={(items) => {
+          console.log("Receipt items found:", items);
+          alert(`Found ${items.length} items on receipt!\n\n${items.map(i => `- ${i.name} (${i.quantity}x)`).join('\n')}`);
+        }}
+      />
     </div>
   );
 }

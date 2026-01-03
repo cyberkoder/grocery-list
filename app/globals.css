@@ -70,8 +70,19 @@
 
 /* Extend header into safe area */
 .safe-area-header {
+  position: relative;
   padding-top: env(safe-area-inset-top, 0px);
-  background-color: inherit;
+}
+
+/* Make sure header has full background extending into safe area */
+.safe-area-header::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: inherit;
 }
 
 /* Bottom safe area for fixed elements */

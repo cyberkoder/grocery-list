@@ -192,27 +192,31 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
   return (
     <>
       <div className="relative overflow-hidden rounded-lg">
-        {/* Background indicators */}
+        {/* Background indicators - full width with icons positioned at edges */}
         <div
           className={cn(
-            "absolute inset-y-0 left-0 w-20 flex items-center justify-center transition-opacity",
+            "absolute inset-0 flex items-center transition-opacity rounded-lg",
             showCheckIndicator ? "opacity-100" : "opacity-0",
             item.checked ? "bg-orange-500" : "bg-green-500"
           )}
         >
-          {item.checked ? (
-            <X className="h-6 w-6 text-white" />
-          ) : (
-            <Check className="h-6 w-6 text-white" />
-          )}
+          <div className="pl-6">
+            {item.checked ? (
+              <X className="h-6 w-6 text-white" />
+            ) : (
+              <Check className="h-6 w-6 text-white" />
+            )}
+          </div>
         </div>
         <div
           className={cn(
-            "absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-destructive transition-opacity",
+            "absolute inset-0 flex items-center justify-end bg-destructive transition-opacity rounded-lg",
             showDeleteIndicator ? "opacity-100" : "opacity-0"
           )}
         >
-          <Trash2 className="h-6 w-6 text-white" />
+          <div className="pr-6">
+            <Trash2 className="h-6 w-6 text-white" />
+          </div>
         </div>
 
         {/* Card content */}
