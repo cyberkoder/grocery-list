@@ -21,21 +21,23 @@ model User {
 }
 
 model Store {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  icon      String?
-  order     Int
-  createdAt DateTime @default(now())
-  items     Item[]
+  id          String        @id @default(cuid())
+  name        String        @unique
+  icon        String?
+  order       Int
+  createdAt   DateTime      @default(now())
+  items       Item[]
+  itemHistory ItemHistory[]
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  icon      String?
-  order     Int
-  createdAt DateTime @default(now())
-  items     Item[]
+  id          String        @id @default(cuid())
+  name        String        @unique
+  icon        String?
+  order       Int
+  createdAt   DateTime      @default(now())
+  items       Item[]
+  itemHistory ItemHistory[]
 }
 
 model Item {
@@ -58,4 +60,21 @@ model Item {
   @@index([categoryId])
   @@index([addedById])
   @@index([checked])
+}
+
+model ItemHistory {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  storeId         String?
+  store           Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  defaultQuantity Int      @default(1)
+  defaultUnit     String?
+  addCount        Int      @default(1)
+  lastAddedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([addCount])
+  @@index([lastAddedAt])
 }

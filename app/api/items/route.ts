@@ -3,6 +3,28 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Normalize item name: trim, title case
+function normalizeName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+// Category names to exclude from history
+const EXCLUDED_NAMES = [
+  "produce", "dairy", "meat & seafood", "frozen", "pantry",
+  "beverages", "snacks", "household", "personal care", "baby", "pet", "other"
+];
+
+// Check if name is valid for history
+function isValidForHistory(name: string): boolean {
+  const normalized = name.toLowerCase().trim();
+  return normalized.length >= 2 && !EXCLUDED_NAMES.includes(normalized);
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -38,6 +60,36 @@ export async function POST(req: Request) {
         store: true,
       },
     });
+
+    // Track in ItemHistory for suggestions (if valid name)
+    if (isValidForHistory(name)) {
+      const normalizedName = normalizeName(name);
+      try {
+        await prisma.itemHistory.upsert({
+          where: { name: normalizedName },
+          update: {
+            addCount: { increment: 1 },
+            lastAddedAt: new Date(),
+            categoryId,
+            storeId,
+            defaultQuantity: quantity || 1,
+            defaultUnit: unit || undefined,
+          },
+          create: {
+            name: normalizedName,
+            categoryId,
+            storeId,
+            defaultQuantity: quantity || 1,
+            defaultUnit: unit || null,
+            addCount: 1,
+            lastAddedAt: new Date(),
+          },
+        });
+      } catch (historyError) {
+        // Don't fail the request if history tracking fails
+        console.error("Error tracking item history:", historyError);
+      }
+    }
 
     return NextResponse.json(item);
   } catch (error) {

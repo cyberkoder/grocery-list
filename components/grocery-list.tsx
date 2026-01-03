@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategorySection } from "./category-section";
-import { AddItemForm } from "./add-item-form";
+import { AddItemForm, AddItemSidebar } from "./add-item-form";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Item {
@@ -245,10 +245,10 @@ export function GroceryList() {
   const storesWithItems = stores.filter((store) => store.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 lg:pb-6">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4 max-w-lg mx-auto">
+        <div className="flex h-14 items-center justify-between px-4 max-w-lg mx-auto lg:max-w-6xl">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
             <h1 className="font-semibold">Grocery List</h1>
@@ -288,7 +288,7 @@ export function GroceryList() {
 
       {/* Stats bar */}
       <div className="border-b bg-muted/30 px-4 py-2">
-        <div className="flex items-center justify-between text-sm max-w-lg mx-auto">
+        <div className="flex items-center justify-between text-sm max-w-lg mx-auto lg:max-w-6xl">
           <span className="text-muted-foreground">
             {session?.user?.name && `Hi, ${session.user.name}!`}
           </span>
@@ -312,63 +312,75 @@ export function GroceryList() {
         </div>
       </div>
 
-      {/* Stores with Items */}
-      <main className="px-4 py-4 space-y-3 max-w-lg mx-auto">
-        {storesWithItems.map((store) => {
-          const itemsByCategory = getItemsByCategory(store.items);
-          const uncheckedCount = store.items.filter((i) => !i.checked).length;
-          const isExpanded = expandedStores.has(store.id);
+      {/* Main Content - Responsive Layout */}
+      <div className="px-4 py-4 max-w-lg mx-auto lg:max-w-6xl lg:flex lg:gap-6">
+        {/* Grocery List Column */}
+        <main className="space-y-3 lg:flex-1">
+          {storesWithItems.map((store) => {
+            const itemsByCategory = getItemsByCategory(store.items);
+            const uncheckedCount = store.items.filter((i) => !i.checked).length;
+            const isExpanded = expandedStores.has(store.id);
 
-          return (
-            <Collapsible
-              key={store.id}
-              open={isExpanded}
-              onOpenChange={() => toggleStoreExpanded(store.id)}
-            >
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg cursor-pointer hover:bg-primary/15 transition-colors active:bg-primary/20 touch-manipulation">
-                  <div className="flex items-center gap-2">
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-primary" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-primary" />
-                    )}
-                    <StoreIcon className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">{store.name}</span>
+            return (
+              <Collapsible
+                key={store.id}
+                open={isExpanded}
+                onOpenChange={() => toggleStoreExpanded(store.id)}
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg cursor-pointer hover:bg-primary/15 transition-colors active:bg-primary/20 touch-manipulation">
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-primary" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-primary" />
+                      )}
+                      <StoreIcon className="h-4 w-4 text-primary" />
+                      <span className="font-semibold">{store.name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {uncheckedCount} item{uncheckedCount !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    {uncheckedCount} item{uncheckedCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2 space-y-3 pl-2">
-                {Object.entries(itemsByCategory).map(([categoryName, items]) => (
-                  <CategorySection
-                    key={categoryName}
-                    name={categoryName}
-                    items={items}
-                    categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-                    stores={stores.map((s) => ({ id: s.id, name: s.name }))}
-                    onToggle={handleToggleItem}
-                    onDelete={handleDeleteItem}
-                    onEdit={handleEditItem}
-                  />
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-3 pl-2">
+                  {Object.entries(itemsByCategory).map(([categoryName, items]) => (
+                    <CategorySection
+                      key={categoryName}
+                      name={categoryName}
+                      items={items}
+                      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+                      stores={stores.map((s) => ({ id: s.id, name: s.name }))}
+                      onToggle={handleToggleItem}
+                      onDelete={handleDeleteItem}
+                      onEdit={handleEditItem}
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
 
-        {totalItems === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <ShoppingCart className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h2 className="font-medium text-lg">Your list is empty</h2>
-            <p className="text-muted-foreground text-sm">
-              Tap the + button to add your first item
-            </p>
-          </div>
-        )}
-      </main>
+          {totalItems === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <ShoppingCart className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h2 className="font-medium text-lg">Your list is empty</h2>
+              <p className="text-muted-foreground text-sm">
+                Tap the + button to add your first item
+              </p>
+            </div>
+          )}
+        </main>
+
+        {/* Desktop Sidebar - Always visible on lg screens */}
+        <aside className="hidden lg:block lg:w-80 lg:shrink-0 lg:sticky lg:top-20 lg:self-start">
+          <AddItemSidebar
+            categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+            stores={stores.map((s) => ({ id: s.id, name: s.name }))}
+            onAdd={handleAddItem}
+          />
+        </aside>
+      </div>
 
       {/* Add Item FAB */}
       <AddItemForm
