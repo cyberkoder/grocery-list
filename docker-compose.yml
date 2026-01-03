@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3200:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT}
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+      - CRON_SECRET=${CRON_SECRET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/auth/session"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cron service for daily notifications
+  cron:
+    build: .
+    entrypoint: /bin/sh
+    command: |
+      -c 'echo "0 9 * * * cd /app && node -e \"fetch(process.env.NEXTAUTH_URL + '/api/push/send?secret=' + process.env.CRON_SECRET, {method: 'POST'})\"" | crontab - && crond -f'
+    environment:
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - CRON_SECRET=${CRON_SECRET}
+    restart: unless-stopped
+    depends_on:
+      - app

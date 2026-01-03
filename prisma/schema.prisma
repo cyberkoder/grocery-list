@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  password         String
+  pushSubscription String?  @db.Text
+  notifyAt9am      Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  items            Item[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?
+  order     Int
+  createdAt DateTime @default(now())
+  items     Item[]
+}
+
+model Item {
+  id         String   @id @default(cuid())
+  name       String
+  quantity   Int      @default(1)
+  unit       String?
+  note       String?
+  checked    Boolean  @default(false)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  addedById  String
+  addedBy    User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([addedById])
+  @@index([checked])
+}
