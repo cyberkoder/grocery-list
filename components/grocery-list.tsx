@@ -73,35 +73,44 @@ export function GroceryList() {
 
   const requestNotificationPermission = useCallback(async () => {
     if (!("Notification" in window)) {
+      alert("Notifications are not supported in this browser.");
       return;
     }
 
     if (Notification.permission === "granted") {
       setNotificationsEnabled(true);
+      alert("Notifications are already enabled!");
       return;
     }
 
-    if (Notification.permission !== "denied") {
-      const permission = await Notification.requestPermission();
-      setNotificationsEnabled(permission === "granted");
+    if (Notification.permission === "denied") {
+      alert("Notifications were previously blocked. Please enable them in your browser settings.");
+      return;
+    }
 
-      if (permission === "granted") {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-          });
+    const permission = await Notification.requestPermission();
+    setNotificationsEnabled(permission === "granted");
 
-          await fetch("/api/push/subscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(subscription),
-          });
-        } catch (error) {
-          console.error("Failed to subscribe to push:", error);
-        }
+    if (permission === "granted") {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        });
+
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subscription),
+        });
+        alert("Notifications enabled! You'll receive reminders at 9am.");
+      } catch (error) {
+        console.error("Failed to subscribe to push:", error);
+        alert("Failed to enable notifications. Please try again.");
       }
+    } else {
+      alert("Notifications were not enabled.");
     }
   }, []);
 
@@ -279,7 +288,17 @@ export function GroceryList() {
                 <BellOff className="h-4 w-4" />
               )}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => signOut()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                if (confirm("Are you sure you want to log out?")) {
+                  signOut();
+                }
+              }}
+              title="Log out"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
