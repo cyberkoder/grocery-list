@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon } from "lucide-react";
+import { LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart, ChevronDown, ChevronRight, Store as StoreIcon, Plus, TrendingUp } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
 import { CategorySection } from "./category-section";
@@ -33,6 +33,15 @@ interface Store {
   items: Item[];
 }
 
+interface ItemSuggestion {
+  id: string;
+  name: string;
+  categoryId: string;
+  storeId: string | null;
+  defaultQuantity: number;
+  defaultUnit: string | null;
+}
+
 export function GroceryList() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -42,12 +51,15 @@ export function GroceryList() {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
+  const [frequentItems, setFrequentItems] = useState<ItemSuggestion[]>([]);
+  const [addingQuick, setAddingQuick] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [storesRes, categoriesRes] = await Promise.all([
+      const [storesRes, categoriesRes, suggestionsRes] = await Promise.all([
         fetch("/api/stores"),
         fetch("/api/categories"),
+        fetch("/api/suggestions"),
       ]);
 
       if (storesRes.ok) {
@@ -63,6 +75,11 @@ export function GroceryList() {
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json();
         setCategories(categoriesData);
+      }
+
+      if (suggestionsRes.ok) {
+        const suggestionsData = await suggestionsRes.json();
+        setFrequentItems(suggestionsData.frequent || []);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -140,6 +157,24 @@ export function GroceryList() {
 
     if (res.ok) {
       fetchData();
+    }
+  }
+
+  async function handleQuickAdd(suggestion: ItemSuggestion) {
+    if (!suggestion.storeId || !suggestion.categoryId) return;
+
+    setAddingQuick(suggestion.id);
+    try {
+      await handleAddItem({
+        name: suggestion.name,
+        quantity: suggestion.defaultQuantity || 1,
+        unit: suggestion.defaultUnit || "",
+        note: "",
+        categoryId: suggestion.categoryId,
+        storeId: suggestion.storeId,
+      });
+    } finally {
+      setAddingQuick(null);
     }
   }
 
@@ -331,6 +366,35 @@ export function GroceryList() {
           </div>
         </div>
       </div>
+
+      {/* Quick Add - Frequent Items */}
+      {frequentItems.length > 0 && (
+        <div className="border-b bg-muted/20 px-4 py-3">
+          <div className="max-w-lg mx-auto lg:max-w-6xl">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+              <TrendingUp className="h-3 w-3" />
+              <span>Quick Add</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {frequentItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleQuickAdd(item)}
+                  disabled={addingQuick === item.id || !item.storeId}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0 active:scale-95 disabled:opacity-50"
+                >
+                  <Plus className="h-3 w-3" />
+                  {item.name}
+                  {addingQuick === item.id && (
+                    <span className="animate-spin">...</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content - Responsive Layout */}
       <div className="px-4 py-4 max-w-lg mx-auto lg:max-w-6xl lg:flex lg:gap-6">
