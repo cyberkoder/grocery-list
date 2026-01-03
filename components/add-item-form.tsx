@@ -208,7 +208,7 @@ export function AddItemForm({ categories, stores, onAdd }: AddItemFormProps) {
           <Plus className="h-7 w-7" strokeWidth={2.5} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Item</DialogTitle>
         </DialogHeader>
