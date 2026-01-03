@@ -18,8 +18,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { SuggestionChips } from "./suggestion-chips";
 
 interface Category {
@@ -198,8 +204,8 @@ export function AddItemForm({ categories, stores, onAdd }: AddItemFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         <Button
           size="icon"
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 lg:hidden"
@@ -207,132 +213,133 @@ export function AddItemForm({ categories, stores, onAdd }: AddItemFormProps) {
         >
           <Plus className="h-7 w-7" strokeWidth={2.5} />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add Item</DialogTitle>
-        </DialogHeader>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="text-left">
+          <DrawerTitle>Add Item</DrawerTitle>
+        </DrawerHeader>
 
-        {/* Quick Add Suggestions */}
-        <SuggestionChips
-          frequent={suggestions?.frequent || []}
-          recent={suggestions?.recent || []}
-          onSelect={handleSuggestionSelect}
-          loading={suggestionsLoading}
-        />
+        <div className="px-4 pb-6 overflow-y-auto">
+          {/* Quick Add Suggestions */}
+          <SuggestionChips
+            frequent={suggestions?.frequent || []}
+            recent={suggestions?.recent || []}
+            onSelect={handleSuggestionSelect}
+            loading={suggestionsLoading}
+          />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2 relative">
-            <Label htmlFor="name">Item Name *</Label>
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                id="name"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g., Milk, Bread, Eggs"
-                required
-                autoFocus
-                autoComplete="off"
-                className="flex-1"
-              />
-              <VoiceInput
-                onResult={(text) => handleNameChange(text)}
-                disabled={loading}
-              />
-            </div>
-            {/* Autocomplete dropdown */}
-            {showAutocomplete && autocompleteResults.length > 0 && (
-              <div
-                ref={autocompleteRef}
-                className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto"
-              >
-                {autocompleteResults.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSuggestionSelect(item)}
-                    className="w-full px-3 py-2 text-left hover:bg-accent transition-colors flex items-center justify-between"
-                  >
-                    <span>{item.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {item.category?.name}
-                    </span>
-                  </button>
-                ))}
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2 relative">
+              <Label htmlFor="name">Item Name *</Label>
+              <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  id="name"
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g., Milk, Bread, Eggs"
+                  required
+                  autoComplete="off"
+                  className="flex-1"
+                />
+                <VoiceInput
+                  onResult={(text) => handleNameChange(text)}
+                  disabled={loading}
+                />
               </div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
+              {/* Autocomplete dropdown */}
+              {showAutocomplete && autocompleteResults.length > 0 && (
+                <div
+                  ref={autocompleteRef}
+                  className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto"
+                >
+                  {autocompleteResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSuggestionSelect(item)}
+                      className="w-full px-3 py-2 text-left hover:bg-accent transition-colors flex items-center justify-between"
+                    >
+                      <span>{item.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.category?.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unit</Label>
+                <Input
+                  id="unit"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="lbs, oz, pack"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unit">Unit</Label>
+              <Label htmlFor="store">Store *</Label>
+              <Select value={storeId} onValueChange={setStoreId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((store) => (
+                    <SelectItem key={store.id} value={store.id}>
+                      {store.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="note">Note (optional)</Label>
               <Input
-                id="unit"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="lbs, oz, pack"
+                id="note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Any special notes..."
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="store">Store *</Label>
-            <Select value={storeId} onValueChange={setStoreId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a store" />
-              </SelectTrigger>
-              <SelectContent>
-                {stores.map((store) => (
-                  <SelectItem key={store.id} value={store.id}>
-                    {store.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={categoryId} onValueChange={setCategoryId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="note">Note (optional)</Label>
-            <Input
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Any special notes..."
-            />
-          </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading || !name.trim() || !categoryId || !storeId}
-          >
-            {loading ? "Adding..." : "Add Item"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || !name.trim() || !categoryId || !storeId}
+            >
+              {loading ? "Adding..." : "Add Item"}
+            </Button>
+          </form>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
