@@ -375,14 +375,14 @@ export function GroceryList() {
               <TrendingUp className="h-3 w-3" />
               <span>Quick Add</span>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {frequentItems.map((item) => (
+            <div className="flex flex-wrap gap-2">
+              {frequentItems.slice(0, 8).map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => handleQuickAdd(item)}
                   disabled={addingQuick === item.id || !item.storeId}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0 active:scale-95 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors active:scale-95 disabled:opacity-50"
                 >
                   <Plus className="h-3 w-3" />
                   {item.name}
