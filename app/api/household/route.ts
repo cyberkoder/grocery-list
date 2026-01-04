@@ -67,10 +67,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Format name: append "Household" if not already present
+    let householdName = name.trim();
+    if (!householdName.toLowerCase().endsWith("household")) {
+      householdName = `${householdName} Household`;
+    }
+
     // Create household with user as owner
     const household = await prisma.household.create({
       data: {
-        name: name.trim(),
+        name: householdName,
         members: {
           create: {
             userId: session.user.id,
