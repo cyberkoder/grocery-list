@@ -246,7 +246,8 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
           <Checkbox
             checked={item.checked}
             onCheckedChange={(checked) => onToggle(item.id, checked as boolean)}
-            className="h-5 w-5 shrink-0"
+            className="h-6 w-6 shrink-0 transition-transform active:scale-90"
+            aria-label={item.checked ? "Uncheck item" : "Check item"}
           />
           <div className="flex-1 min-w-0">
             <p className={cn("font-medium text-sm sm:text-base", item.checked && "line-through text-muted-foreground")}>
@@ -261,24 +262,26 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
             )}
             <p className="text-xs text-muted-foreground mt-0.5">by {item.addedBy.name}</p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center shrink-0">
             {onEdit && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                className="h-11 w-11 text-muted-foreground hover:text-primary active:scale-95 transition-transform"
                 onClick={openEdit}
+                aria-label="Edit item"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-5 w-5" />
               </Button>
             )}
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="h-11 w-11 text-muted-foreground hover:text-destructive active:scale-95 transition-transform"
               onClick={() => onDelete(item.id)}
+              aria-label="Delete item"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </Button>
           </div>
         </div>
