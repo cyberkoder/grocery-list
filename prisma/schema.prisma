@@ -8,18 +8,62 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
+  id               String              @id @default(cuid())
   name             String
-  email            String         @unique
+  email            String              @unique
   password         String
-  isAdmin          Boolean        @default(false)
-  pushSubscription String?        @db.Text
-  notifyAt9am      Boolean        @default(true)
-  notifyOnChanges  Boolean        @default(true)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  isAdmin          Boolean             @default(false)
+  pushSubscription String?             @db.Text
+  notifyAt9am      Boolean             @default(true)
+  notifyOnChanges  Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   items            Item[]
   shoppingTrips    ShoppingTrip[]
+  households       HouseholdMember[]
+  sentInvites      HouseholdInvite[]
+}
+
+model Household {
+  id        String            @id @default(cuid())
+  name      String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  members   HouseholdMember[]
+  invites   HouseholdInvite[]
+  items     Item[]
+  trips     ShoppingTrip[]
+}
+
+model HouseholdMember {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  role        String    @default("member") // owner, admin, member
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, householdId])
+  @@index([userId])
+  @@index([householdId])
+}
+
+model HouseholdInvite {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  invitedById String
+  invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@index([householdId])
 }
 
 model Store {
@@ -43,24 +87,27 @@ model Category {
 }
 
 model Item {
-  id         String   @id @default(cuid())
-  name       String
-  quantity   Int      @default(1)
-  unit       String?
-  note       String?
-  checked    Boolean  @default(false)
-  storeId    String
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  addedById  String
-  addedBy    User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String     @id @default(cuid())
+  name        String
+  quantity    Int        @default(1)
+  unit        String?
+  note        String?
+  checked     Boolean    @default(false)
+  storeId     String
+  store       Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  addedById   String
+  addedBy     User       @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  householdId String?
+  household   Household? @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([storeId])
   @@index([categoryId])
   @@index([addedById])
+  @@index([householdId])
   @@index([checked])
 }
 
@@ -90,12 +137,15 @@ model ShoppingTrip {
   id          String           @id @default(cuid())
   userId      String
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  householdId String?
+  household   Household?       @relation(fields: [householdId], references: [id], onDelete: Cascade)
   completedAt DateTime         @default(now())
   itemCount   Int              @default(0)
   createdAt   DateTime         @default(now())
   purchases   PurchaseRecord[]
 
   @@index([userId])
+  @@index([householdId])
   @@index([completedAt])
 }
 

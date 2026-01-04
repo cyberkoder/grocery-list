@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart,
   Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
-  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight, Receipt, Settings
+  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight, Receipt, Settings, Users
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
@@ -430,6 +430,12 @@ export function GroceryList() {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link href="/household" className="flex items-center">
+                    <Users className="h-4 w-4 mr-2" />
+                    Household
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setReceiptScannerOpen(true)}>
                   <Receipt className="h-4 w-4 mr-2" />
                   Scan Receipt

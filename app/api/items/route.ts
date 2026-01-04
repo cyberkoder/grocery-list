@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getHouseholdId } from "@/lib/household";
 
 // Analyze purchase patterns and update recurring status
 async function analyzeRecurringPatterns() {
@@ -136,6 +137,9 @@ export async function POST(req: Request) {
     // Format the name nicely
     const formattedName = normalizeName(name);
 
+    // Get user's household (if any)
+    const householdId = await getHouseholdId(session.user.id);
+
     const item = await prisma.item.create({
       data: {
         name: formattedName,
@@ -145,6 +149,7 @@ export async function POST(req: Request) {
         categoryId,
         storeId,
         addedById: session.user.id,
+        householdId,
       },
       include: {
         addedBy: {

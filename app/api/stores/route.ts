@@ -2,18 +2,28 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getHouseholdId } from "@/lib/household";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Get user's household (if any)
+  const householdId = await getHouseholdId(session.user.id);
+
+  // Build item filter based on household
+  const itemWhere = householdId
+    ? { householdId } // Shared household items
+    : { addedById: session.user.id, householdId: null }; // Personal items only
 
   const stores = await prisma.store.findMany({
     orderBy: { order: "asc" },
     include: {
       items: {
+        where: itemWhere,
         orderBy: [{ checked: "asc" }, { createdAt: "desc" }],
         include: {
           addedBy: {
