@@ -15,6 +15,7 @@ import { ItemCard } from "./item-card";
 import { AddItemDrawer } from "./add-item-drawer";
 import { UserAvatar } from "./user-avatar";
 import { ReceiptScanner } from "./receipt-scanner";
+import { RecurringSuggestions } from "./recurring-suggestions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -555,6 +556,20 @@ export function GroceryList() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 space-y-6">
+          {/* Recurring Item Suggestions */}
+          <RecurringSuggestions
+            onAddItem={async (item) => {
+              await handleAddItem({
+                name: item.name,
+                quantity: item.quantity,
+                unit: item.unit || "",
+                note: "",
+                categoryId: item.categoryId,
+                storeId: item.storeId,
+              });
+            }}
+          />
+
           {Object.entries(itemsByCategory).length > 0 ? (
             Object.entries(itemsByCategory).map(([categoryName, items]) => {
               const isExpanded = expandedCategories.has(categoryName);

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "./user-avatar";
+import { ItemImage } from "./item-image";
 
 interface Category {
   id: string;
@@ -43,7 +44,7 @@ interface Item {
   note: string | null;
   checked: boolean;
   addedBy: { name: string };
-  category?: { id: string; name: string };
+  category?: { id: string; name: string; icon?: string };
   store?: { id: string; name: string };
 }
 
@@ -231,13 +232,16 @@ export function ItemCard({ item, categories = [], stores = [], onToggle, onDelet
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Category Icon */}
-          <div className={cn(
-            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
-            item.checked ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-          )}>
-            {getCategoryIcon(item.category?.name)}
-          </div>
+          {/* Item Image or Category Icon */}
+          <ItemImage
+            name={item.name}
+            categoryIcon={item.category?.icon}
+            size="md"
+            className={cn(
+              "shrink-0",
+              item.checked && "opacity-50"
+            )}
+          />
 
           <Checkbox
             checked={item.checked}

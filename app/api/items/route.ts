@@ -3,6 +3,54 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Analyze purchase patterns and update recurring status
+async function analyzeRecurringPatterns() {
+  const itemHistories = await prisma.itemHistory.findMany({
+    where: {
+      addCount: { gte: 3 },
+    },
+    include: {
+      purchases: {
+        orderBy: { purchasedAt: "asc" },
+        select: { purchasedAt: true },
+      },
+    },
+  });
+
+  for (const item of itemHistories) {
+    if (item.purchases.length < 3) continue;
+
+    // Calculate intervals between purchases
+    const intervals: number[] = [];
+    for (let i = 1; i < item.purchases.length; i++) {
+      const prevDate = item.purchases[i - 1].purchasedAt;
+      const currDate = item.purchases[i].purchasedAt;
+      const daysDiff = Math.round(
+        (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000)
+      );
+      intervals.push(daysDiff);
+    }
+
+    if (intervals.length === 0) continue;
+
+    // Calculate average interval
+    const avgInterval = Math.round(
+      intervals.reduce((a, b) => a + b, 0) / intervals.length
+    );
+
+    // Mark as recurring if average interval is less than 30 days
+    const isRecurring = avgInterval > 0 && avgInterval <= 30;
+
+    await prisma.itemHistory.update({
+      where: { id: item.id },
+      data: {
+        purchaseIntervalDays: avgInterval,
+        isRecurring,
+      },
+    });
+  }
+}
+
 // Common product types that should come first with flavor in parentheses
 // Multi-word types should come first (longer matches first)
 const PRODUCT_TYPES = [
@@ -194,7 +242,7 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -204,9 +252,48 @@ export async function DELETE(req: Request) {
     const clearChecked = searchParams.get("clearChecked");
 
     if (clearChecked === "true") {
-      await prisma.item.deleteMany({
+      // Get all checked items before deleting
+      const checkedItems = await prisma.item.findMany({
         where: { checked: true },
+        include: {
+          category: { select: { name: true } },
+          store: { select: { name: true } },
+        },
       });
+
+      if (checkedItems.length > 0) {
+        // Create a shopping trip record with all purchases
+        await prisma.$transaction(async (tx) => {
+          // Create the shopping trip
+          const trip = await tx.shoppingTrip.create({
+            data: {
+              userId: session.user.id,
+              itemCount: checkedItems.length,
+            },
+          });
+
+          // Create purchase records for each item
+          await tx.purchaseRecord.createMany({
+            data: checkedItems.map((item) => ({
+              tripId: trip.id,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              categoryName: item.category.name,
+              storeName: item.store.name,
+            })),
+          });
+
+          // Delete the checked items
+          await tx.item.deleteMany({
+            where: { checked: true },
+          });
+        });
+
+        // Analyze recurring patterns in the background
+        analyzeRecurringPatterns().catch(console.error);
+      }
+
       return NextResponse.json({ success: true });
     }
 

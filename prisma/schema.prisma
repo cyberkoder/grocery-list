@@ -8,16 +8,18 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(cuid())
+  id               String         @id @default(cuid())
   name             String
-  email            String   @unique
+  email            String         @unique
   password         String
-  pushSubscription String?  @db.Text
-  notifyAt9am      Boolean  @default(true)
-  notifyOnChanges  Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  isAdmin          Boolean        @default(false)
+  pushSubscription String?        @db.Text
+  notifyAt9am      Boolean        @default(true)
+  notifyOnChanges  Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   items            Item[]
+  shoppingTrips    ShoppingTrip[]
 }
 
 model Store {
@@ -63,18 +65,53 @@ model Item {
 }
 
 model ItemHistory {
-  id              String   @id @default(cuid())
-  name            String   @unique
-  categoryId      String
-  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  storeId         String?
-  store           Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
-  defaultQuantity Int      @default(1)
-  defaultUnit     String?
-  addCount        Int      @default(1)
-  lastAddedAt     DateTime @default(now())
-  createdAt       DateTime @default(now())
+  id                   String           @id @default(cuid())
+  name                 String           @unique
+  categoryId           String
+  category             Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  storeId              String?
+  store                Store?           @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  defaultQuantity      Int              @default(1)
+  defaultUnit          String?
+  addCount             Int              @default(1)
+  lastAddedAt          DateTime         @default(now())
+  createdAt            DateTime         @default(now())
+  imageUrl             String?
+  purchaseIntervalDays Int?
+  isRecurring          Boolean          @default(false)
+  purchases            PurchaseRecord[]
 
   @@index([addCount])
   @@index([lastAddedAt])
+  @@index([isRecurring])
+}
+
+model ShoppingTrip {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedAt DateTime         @default(now())
+  itemCount   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  purchases   PurchaseRecord[]
+
+  @@index([userId])
+  @@index([completedAt])
+}
+
+model PurchaseRecord {
+  id            String        @id @default(cuid())
+  tripId        String
+  trip          ShoppingTrip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  itemHistoryId String?
+  itemHistory   ItemHistory?  @relation(fields: [itemHistoryId], references: [id], onDelete: SetNull)
+  name          String
+  quantity      Int           @default(1)
+  unit          String?
+  categoryName  String
+  storeName     String
+  purchasedAt   DateTime      @default(now())
+
+  @@index([tripId])
+  @@index([purchasedAt])
 }
