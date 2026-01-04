@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, Trash2, RefreshCw, Bell, BellOff, ShoppingCart,
   Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
-  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight, Receipt
+  IceCream, Cookie, Coffee, Wine, Sparkles, Package, ChevronDown, ChevronRight, Receipt, Settings
 } from "lucide-react";
+import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -421,6 +422,14 @@ export function GroceryList() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {session?.user?.isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setReceiptScannerOpen(true)}>
                   <Receipt className="h-4 w-4 mr-2" />
                   Scan Receipt
