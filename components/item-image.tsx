@@ -2,8 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { ShoppingCart, Package } from "lucide-react";
+import {
+  Apple, Milk, Beef, Snowflake, Package, CupSoda,
+  Cookie, Home, Sparkles, ShoppingCart
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Map icon names from database to Lucide components
+const iconMap: Record<string, React.ReactNode> = {
+  apple: <Apple className="h-5 w-5" />,
+  milk: <Milk className="h-5 w-5" />,
+  beef: <Beef className="h-5 w-5" />,
+  snowflake: <Snowflake className="h-5 w-5" />,
+  package: <Package className="h-5 w-5" />,
+  "cup-soda": <CupSoda className="h-5 w-5" />,
+  cookie: <Cookie className="h-5 w-5" />,
+  home: <Home className="h-5 w-5" />,
+  sparkles: <Sparkles className="h-5 w-5" />,
+};
 
 interface ItemImageProps {
   name: string;
@@ -62,6 +78,7 @@ export function ItemImage({
 
   // Show category icon or fallback while loading or on error
   if (loading || error || !imageUrl) {
+    const icon = categoryIcon ? iconMap[categoryIcon] : null;
     return (
       <div
         className={cn(
@@ -70,11 +87,7 @@ export function ItemImage({
           className
         )}
       >
-        {categoryIcon ? (
-          <span className="text-lg">{categoryIcon}</span>
-        ) : (
-          <Package className="h-4 w-4" />
-        )}
+        {icon || <Package className="h-5 w-5" />}
       </div>
     );
   }
