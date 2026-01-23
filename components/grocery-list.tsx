@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, Trash2, Bell, BellOff, ShoppingCart,
   Search, Plus, MoreVertical, Check, Apple, Milk, Beef,
-  IceCream, Cookie, Coffee, Sparkles, Package, ChevronDown, ChevronRight, Receipt, Settings, Users
+  IceCream, Cookie, Coffee, Sparkles, Package, ChevronDown, ChevronRight, Receipt, Settings, Users, User
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
@@ -532,7 +532,7 @@ export function GroceryList() {
         <div className="flex h-16 items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             {session?.user?.name ? (
-              <UserAvatar name={session.user.name} size="lg" />
+              <UserAvatar name={session.user.name} avatarUrl={session.user.avatarUrl} size="lg" />
             ) : (
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <ShoppingCart className="h-5 w-5" />
@@ -587,6 +587,12 @@ export function GroceryList() {
                   <Link href="/household" className="flex items-center">
                     <Users className="h-4 w-4 mr-2" />
                     Household
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account" className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    Account Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setReceiptScannerOpen(true)}>

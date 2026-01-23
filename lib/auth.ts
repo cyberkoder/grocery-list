@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           isAdmin: user.isAdmin,
+          avatarUrl: user.avatarUrl,
         };
       },
     }),
@@ -47,10 +48,24 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.isAdmin = (user as any).isAdmin;
+        token.avatarUrl = (user as any).avatarUrl;
+      }
+      // Refresh user data when session is updated
+      if (trigger === "update" && token.id) {
+        const freshUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { name: true, email: true, avatarUrl: true, isAdmin: true },
+        });
+        if (freshUser) {
+          token.name = freshUser.name;
+          token.email = freshUser.email;
+          token.avatarUrl = freshUser.avatarUrl;
+          token.isAdmin = freshUser.isAdmin;
+        }
       }
       return token;
     },
@@ -58,6 +73,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isAdmin = token.isAdmin as boolean;
+        session.user.avatarUrl = token.avatarUrl as string | null | undefined;
       }
       return session;
     },

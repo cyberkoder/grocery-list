@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
   name: string;
+  avatarUrl?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -40,7 +41,7 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function UserAvatar({ name, size = "md", className }: UserAvatarProps) {
+export function UserAvatar({ name, avatarUrl, size = "md", className }: UserAvatarProps) {
   const initials = getInitials(name);
   const color = getAvatarColor(name);
 
@@ -49,6 +50,29 @@ export function UserAvatar({ name, size = "md", className }: UserAvatarProps) {
     md: "h-8 w-8 text-sm",
     lg: "h-10 w-10 text-base",
   };
+
+  const imageSizes = {
+    sm: 24,
+    md: 32,
+    lg: 40,
+  };
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        width={imageSizes[size]}
+        height={imageSizes[size]}
+        className={cn(
+          "rounded-full object-cover shrink-0",
+          sizeClasses[size],
+          className
+        )}
+        title={name}
+      />
+    );
+  }
 
   return (
     <div
